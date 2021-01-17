@@ -1,0 +1,35 @@
+  - name: Bepaal productnaam voor bouwblok stap2
+    shell: "cd /var/local/wls/config/ && ls DS32-DOMAIN-DM-*.ini | grep -v VOORBEELD | tail -1 | awk '{gsub(\"DS32-DOMAIN-\",\"\");print}' | awk '{gsub(\".ini\",\"\");print}'"
+    register: return_shell
+    changed_when: false
+
+  - name: Bewaar productnaam voor bouwblok stap2
+    set_fact:
+      stap2_product_name: "{{ return_shell.stdout }}"
+
+  - name: Bepaal managedservers
+    find:
+      paths: '/var/log/wls'
+      recurse: no
+      file_type: directory
+      use_regex: yes
+      patterns: 'MS-*'
+    register: check_folder_names
+    changed_when: false
+
+  - name: Bewaar managedservernames variabele list
+    set_fact:
+      managedservers: "{{ managedservers + [ item.path | basename ] }}"
+    with_items:
+      "{{ check_folder_names.files }}"
+
+  - name: bepaal adminserver aanwezig
+    shell: "grep `hostname` /var/local/wls/config/DS32-DOMAIN-{{ stap2_product_name }}.ini | grep MACHINE1_NAME"
+    ignore_errors: yes
+    register: return_shell
+    failed_when: return_shell.rc > 1
+    changed_when: false
+
+  - set_fact:
+      is_adminserver: "{{ return_shell.rc }}"
+

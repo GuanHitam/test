@@ -1,0 +1,7 @@
+iac_crontabentries:
+-  name: "schoon logfiles ouder dan een maand"
+   state: absent
+iac_certificates:
+- host: fcm.test.politie.local
+
+

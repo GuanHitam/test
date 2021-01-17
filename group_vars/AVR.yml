@@ -1,0 +1,8 @@
+iac_certificates:
+- host: avr.politie.local
+iac_crontabentries:
+- name: "houdt storage groei bij"
+  minute: "0"
+  hour: "6"
+  job: '(date +"%d-%m-%Y %T" && df -P /mnt/*) >> /var/log/wls/MS-AVR-*/storage_usage.log'
+

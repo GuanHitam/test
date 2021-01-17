@@ -1,0 +1,4 @@
+user_password: {{ vault_user_password }}
+ansible_sudo_pass: {{ vault_ansible_sudo_pass }}
+ansible_become_pass: {{ vault_ansible_become_pass }}
+

@@ -1,0 +1,4 @@
+testvar: "group_vars/AVR_Ontwikkel.yml"
+env3: "ONT"
+weblogic_password: "group_vars/AVR_weblogic_password"
+MACHINE1_NAME: "vsuob00286.unix.int.politie"

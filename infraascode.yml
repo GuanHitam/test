@@ -1,0 +1,76 @@
+---
+# dit script past de configuraties aan die in variables bestanden zijn gedefinierd dus infra as code
+- name: Define infra from code
+  hosts: all
+  become: true
+  become_user: wls
+  gather_facts: yes
+  vars:
+    managedservers: []
+
+  tasks:
+  - name: bepaal bouwblok variabelen
+    include: t_bepaal_bouwblok_data.yml
+
+  - name: show info for each managed server
+    debug:
+      msg: "#### {{ CODE }} {{ ansible_hostname }} {{ item }}"
+    with_items: "{{ iac_managedservers }}"
+
+  - name: "enforce crontab entries"
+    cron:
+      name:    "{{ item.name }}"
+      minute:  "{{ item.minute  | default('*') }}"
+      hour:    "{{ item.hour    | default('*') }}"
+      weekday: "{{ item.weekday | default('*') }}"
+      job:     "{{ item.job     | default('*') }}" 
+      state:   "{{ state        | default('present') }}"
+    loop: "{{ iac_crontabentries }}"
+    when: 
+    - item.admin_only is defined and item.admin_only == "true" and is_adminserver == "0"
+    - iac_crontabentries is defined
+    - iac_crontabentries| length > 0
+    - item.state|default('present')  != 'absent'
+
+  - name: check required folders/files
+    file:
+      path: "{{ item.path }}"
+      state: directory
+    loop: "{{ iac_requiredfolders }}"
+    when:
+    - iac_requiredfolders is defined
+
+  - name: check required templates
+    template:
+      src: "{{ item.src}}"
+      dest: "{{ item.dest}}"
+      mode: "{{ item.mode | default('644') }}"
+    loop: "{{ iac_templates }}"
+    when:
+    - iac_templates is defined
+
+  - name: enforce presence of check scripts when certificates need to be checked
+    template:
+      src: "{{ item }}.j2" 
+      #      dest: "/home/wls/wls_scripts/{{ item }}"
+      dest: "~/wls_scripts/{{ item }}"
+      mode: "+x"
+    loop:
+    - check-certs.sh
+    when:
+    - is_adminserver == '0'
+    - iac_certificates is defined
+    - iac_certificates| length > 0
+
+  - name: enforce crontab entry for script that checks expiration date of certificate "{{ item.host }}"
+    cron:
+      name:    "send alert mail when certificate {{ item.host }} about to expire"
+      minute:  "0"
+      hour:    "0"
+      weekday: "0"
+      job:     "/home/wls/wls_scripts/check-certs.sh {{ item.host }}"
+    loop: "{{ iac_certificates }}"
+    when: 
+    - is_adminserver == "0"
+    - iac_certificates is defined
+    - iac_certificates | length > 0

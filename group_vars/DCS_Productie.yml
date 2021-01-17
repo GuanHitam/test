@@ -1,0 +1,3 @@
+requiredfolders:
+- path: /opt/oracle/wls/admin/mservers/DM-DCS/servers/{{ managedserver}}/data/store
+
