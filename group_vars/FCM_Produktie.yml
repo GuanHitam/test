@@ -1,8 +1,0 @@
-iac_crontabentries:
--  name: "schoon logfiles ouder dan een maand"
-   minute: "0"
-   hour: "6"
-   job: "find /opt/oracle/wls/admin/mservers/DM-FCM-PRD/*.log -mtime +30 -type f -delete"
-iac_certificates:
-- host: fcm.politie.local
-

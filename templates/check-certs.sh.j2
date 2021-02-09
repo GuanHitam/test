@@ -1,0 +1,51 @@
+#!/bin/bash
+# Print the number of days till certificate expiration
+#
+# Example:
+#   $ check_cert.sh sleeplessbeastie.eu
+#   81
+#   $ check_cert.sh lwn.net
+#   630
+#
+# Exit codes:
+#   0   - certificate is not expired
+#   1   - certificate is     expired
+#   254 - certificate is empty
+#   255 - DNS resolution failed
+#
+
+# temporary file to store certificate
+CERTIFICATE_FILE=$(mktemp)
+WARNINGDAYS=30
+
+# delete temporary file on exit
+trap "unlink $CERTIFICATE_FILE" EXIT
+
+if [ "$#" -eq "1" ]; then
+  WEBSITE="$1"
+  ping -c 1 "$WEBSITE" >&-
+  if [ "$?" -eq "0" ]; then
+    echo -n | openssl s_client -servername "$WEBSITE" -connect "$WEBSITE":443 2>/dev/null | sed -ne '/-BEGIN CERTIFICATE-/,/-END CERTIFICATE-/p' > $CERTIFICATE_FILE
+    CERTIFICATE_SIZE=$(stat -c "%s" $CERTIFICATE_FILE)
+    if [ "$CERTIFICATE_SIZE" -gt "1" ]; then
+      date=$(openssl x509 -in $CERTIFICATE_FILE -enddate -noout | sed "s/.*=\(.*\)/\1/")
+      DATE_S=$(date -d "${date}" +%s)
+      now_s=$(date -d now +%s)
+      DATE_DIFF=$(( (DATE_S - now_s) / 86400 ))
+      echo "$WEBSITE expires in $DATE_S - $now_s = $DATE_DIFF days"
+      echo "$DATE_DIFF  $WARNINGDAYS"
+      if [ "$DATE_DIFF" -lt "$WARNINGDAYS" ]; then
+        echo "send warningmail expirationdate= ${DATE_S}"
+        echo "KO - Certificate for $WEBSITE expires in less than $WARNINGDAYS days" | mail -s "Certificate expiration warning for $WEBSITE" "{{ alertemailaddress }}"
+        exit 1 # expiration alert has been send
+
+      else
+        exit 0 # no expiration alert required
+      fi
+    else
+      exit 254
+    fi
+  else
+    exit 255
+  fi
+fi
