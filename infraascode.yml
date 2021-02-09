@@ -3,19 +3,22 @@
 - name: Define infra from code
   hosts: all
   become: true
-  become_user: wls
+  become_user: root
   gather_facts: yes
   vars:
     managedservers: []
 
   tasks:
-  - name: bepaal bouwblok variabelen
-    include: t_bepaal_bouwblok_data.yml
+#  - name: bepaal bouwblok variabelen
+#    include: t_bepaal_bouwblok_data.yml
 
-  - name: show info for each managed server
-    debug:
-      msg: "#### {{ CODE }} {{ ansible_hostname }} {{ item }}"
-    with_items: "{{ iac_managedservers }}"
+#  - name: show info for each managed server
+#    debug:
+#      msg: "#### {{ CODE }} {{ ansible_hostname }} {{ item }}"
+#    with_items: "{{ iac_managedservers }}"
+
+  - set_fact:
+      is_adminserver: "0"
 
   - name: "enforce crontab entries"
     cron:
@@ -49,6 +52,12 @@
     when:
     - iac_templates is defined
 
+  - name: folder for scripts
+    file:
+      path: "~/wls_scripts"
+      state: directory
+      mode: '0755'
+
   - name: enforce presence of check scripts when certificates need to be checked
     template:
       src: "{{ item }}.j2" 
@@ -68,9 +77,10 @@
       minute:  "0"
       hour:    "0"
       weekday: "0"
-      job:     "/home/wls/wls_scripts/check-certs.sh {{ item.host }}"
+      job:     "~/wls_scripts/check-certs.sh {{ item.host }}"
     loop: "{{ iac_certificates }}"
     when: 
     - is_adminserver == "0"
     - iac_certificates is defined
     - iac_certificates | length > 0
+

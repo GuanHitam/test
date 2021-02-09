@@ -1,1 +1,2 @@
-iac_certificates: www.hcs-company.nl
+iac_certificates: 
+ - host: www.hcs-company.nl
